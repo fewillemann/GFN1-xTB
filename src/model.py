@@ -9,24 +9,48 @@ class GFN1_xTB:
 
     # =============================================================================
     # public methods
-    def load_geometry(self, geom_file: str) -> None:
+    def load_geometry(self, geom_file: str) -> bool:
         """Load geometry of the molecule from xyz file."""
-        self.moltypes = []
-        self.molcoords = []
+        types = []
+        coords = []
         with open(geom_file) as arq:
-            self.molsize = int(arq.readline().split()[0])
+            size = int(arq.readline().split()[0])
             next(arq)  # skip title line
+
             for line in arq:
                 line_split = line.split()
                 if not line_split:
-                    break
-                else:
-                    self.moltypes.append(line_split[0])
-                    self.molcoords.append(
-                        np.array([float(el) for el in line_split[1:]]) / self.b2a
-                    )
+                    break  # black line indicates end of file
+                elif len(line_split) != 4:
+                    print("ERROR: Wrong coordinates file format!")
+                    return False
 
-        # define atom type numbers for molectule atoms
+                try:
+                    at_coord = np.array(line_split[1:]).astype(float)
+                except ValueError:
+                    print("ERROR: Wrong coordinates file format!")
+                    return False
+
+                types.append(line_split[0])
+                coords.append(at_coord / self.b2a)
+
+        # check correct molecule size
+        if len(types) != size:
+            print("ERROR: Wrong coordinates file format!")
+            return False
+
+        # check correct atom types
+        for i, type in enumerate(types):
+            if type not in self.attypes.keys():
+                print(f"ERROR: Incorrect type in atom {i+1}")
+                return False
+
+        # define molecule size, atom type labels and coordinates
+        self.molsize = size
+        self.moltypes = types
+        self.molcoords = coords
+
+        # define atom type numbers for molectule atoms (H: 0, C: 1, N: 2, O: 3)
         self.molattypes = [self.attypes[i] for i in self.moltypes]
 
         # define sequences of shell types and corresponding atom number of each orbital
@@ -41,6 +65,8 @@ class GFN1_xTB:
 
         # calculate distance matrix
         self._calc_rAB()
+
+        return True
 
     def scf(self, maxiter, out_file) -> None:
         """Perform Self Consistent Field calculation."""

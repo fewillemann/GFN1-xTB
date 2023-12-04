@@ -33,6 +33,9 @@ for coord in os.listdir(coord_dir):
     out_file = os.path.join(out_dir, f"{name}.out")
 
     print(f"INFO: Loading {name} geometry.")
-    model.load_geometry(geom_file=geom_file)
+    load_result = model.load_geometry(geom_file=geom_file)
+    if not load_result:
+        continue
+
     print(f"INFO: Staring {name} SCF calculation.")
     model.scf(maxiter=maxiter, out_file=out_file)
