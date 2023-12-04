@@ -1,0 +1,156 @@
+# Parameters and settings needed for GFN1-xTB coding exercise, for H, C, N and O atoms. 
+# More extended parameter sets are available from the Grimme group.
+# Comments preceded by a # are included to improve readability.
+# 
+# Global settings and parameters
+# Conversion factor from bohr to Angstrom: 1 bohr = 0.5291772109 Angstrom
+  0.5291772109
+# Conversion factor from eV to hartree: 1 hartree = 27.2114 eV
+  27.21138505
+# Number of atom types, then atom labels
+  4
+  H C N O
+################
+# A. Zeroth-order repulsion energy, eq. 9
+# kf
+  1.5
+# alpha (per atom type) in bohr (see eq. 9)
+  2.209700  1.281954  1.727773  2.004253
+# Zeff (per atom type) (dimensionless quantity) (eq. 9)
+  1.116244  4.428763  5.498808  5.171786
+#################
+# B. Dispersion energy terms 
+# Overall parameters a1, a2 (eq. 12), s6, s8 (eq. 10), kCN (eq. 14), kL (eq. 16)
+  0.63  5.0  1.  2.4  16.  4.
+# QA values for H, C, N, O (eqs. 11, 13)
+  4.029450  9.640579  7.353601  6.726848   
+# Unscaled covalent radii (in Angstrom) - for eq. 14 - need to be multiplied by 4/3 * 1.889725989 to get scaled values in bohr
+  0.32  0.75  0.71  0.63
+# Max number of reference coordination numbers (max value of N_A or N_B in eq. 15)
+  5
+# Number of reference coordination numbers (N_A, N_B from eq 15) for H, C, N and O
+  2  5  4  3
+# Reference coordination numbers CN_i^A from eq. 16 (1 line per atom type)
+  0.9118  0.0000
+  0.0000  0.9868  1.9985  2.9987  3.9844
+  0.0000  0.9944  2.0143  2.9903
+  0.0000  0.9925  1.9887
+# Reference C6 parameters C^AB_6,ref,ij (eq. 15), organized in blocks for the relevant atom types.
+# Each row corresponds to a given CN_i^A, with different CN_j^B for each entry within a row.
+  1  1  (H - H)
+    3.0267     4.7379
+    4.7379     7.5916
+  1  2  (H - C)
+   12.1402    11.3932    9.4203    8.8210    7.3662
+   19.2653    18.0575   14.7623   13.7992   11.3299
+  1  3  (H - N)
+    8.7171     8.1417    7.6610    6.7746
+   13.5164    12.5980   11.8214   10.3987
+  1  4  (H - O)
+    6.7180    6.0575    5.3717
+   10.2371    9.1812    8.0848
+  2  2  (C - C)
+   49.1130   46.0681   37.8419   35.4129   29.2830
+   46.0681   43.2452   35.5219   33.2540   27.5206
+   37.8419   35.5219   29.3602   27.5063   22.9517
+   35.4129   33.2540   27.5063   25.7809   21.5377
+   29.2830   27.5206   22.9517   21.5377   18.2067
+  2  3  (C - N)
+   34.8146   32.4848   30.5305   26.9351
+   32.7009   30.5410   28.6938   25.3318
+   27.1704   25.3827   23.8965   21.1488
+   25.4799   23.8136   22.4279   19.8669
+   21.4199   20.0468   18.9172   16.8169
+  2  4  (C - O)
+   26.5929   23.9120   21.1428
+   25.0097   22.5178   19.9090
+   20.9597   18.9034   16.7855
+   19.6943   17.7750   15.8009
+   16.7544   15.1751   13.5525
+  3  3  (N - N)
+   25.2685   23.6295   22.2794   19.7707
+   23.6295   22.1241   20.8501   18.5180
+   22.2794   20.8501   19.6768   17.4928
+   19.7707   18.5180   17.4928   15.5817
+  3  4  (N - O)
+   19.6546   17.7698   15.8364
+   18.4128   16.6775   14.8600
+   17.4093   15.7631   14.0807
+   15.5249   14.0793   12.6077
+  4  4  (O - O)
+   15.5059   14.0764   12.6277
+   14.0764   12.8161   11.5009
+   12.6277   11.5009   10.3708
+##########################
+# C. Basis functions. There are two shells per atom type (s,s' for H and s,p for C, N, O)
+# The shells are specified in the order of the atom types. Shells 1 and 2 are for atom type 1, 3 and 4 for 2, etc.
+# Shell properties are provided per shell. For each shell, over three lines: 
+# (a) Atom type, Shell type (1 = s, 2 = s', 3 = p), Num primitives
+# (b) Zeta exponents (section 4.8, eq. 39 or 40)
+# (c) d contraction coefficients d_i,\mu (including normalisation factors) (section 4.8, eq. 39 or 40)
+  1   1   4
+  7.611997207060 1.392901705880 0.386963346250 0.128429655927
+  0.185361036262 0.237716782231 0.186322055973 0.044589693726
+  1   2   7
+  10.256286070315 0.622796532588 0.239100766785  7.611997207059968  1.392901705880201  0.386963346250483 0.1284296559269732
+  -1.318654467825 1.603877700770 0.601323010177 -0.980904319863313 -1.257963503534054 -0.985989899905080 -0.235962336419595
+  2   1   6
+  106.389716617570 19.510792340429  5.482953571885 0.784074534032 0.355861246215 0.169708217404
+   -0.098009151700 -0.136760859798 -0.131523642181 0.198718928130 0.184581824842 0.032280723843
+  2   3   6
+  19.697346208515 5.136667333843 1.837948514710 0.768297611233 0.351318004750 0.166090756999
+   0.468713009645 0.567024335529 0.579087917808 0.415233413915 0.154691267954 0.015897464808
+  3   1   6
+  116.35365971148 21.33807819829  5.99646031966  0.857507139051 0.389189478673 0.1856022631310
+  -0.104815841914 -0.14625883820 -0.14065789824  0.212519865695 0.197400947129 0.0345226051698
+  3   3   6
+   26.217456931595  6.83697962006  2.44633645145935 1.022615398029685 0.4676094211542217 0.2210692355331
+    0.670093745228  0.81064415284  0.82789080668829 0.5936368475992574 0.2211537741948121 0.022727749206149537
+  4   1   6
+  152.287696607881 27.928015215973 7.848374792385 1.122335020271 0.509384658791  0.242922665325
+   -0.128259784124 -0.178972249530 -0.172118558939 0.260053743770 0.241553208010 0.042244204746
+  4   3   6
+   27.203421487168 7.094099125977 2.538336260535 1.061073076784 0.485194891641 0.229383025506
+   0.701740873673 0.848929183574 0.866990360870 0.621673076410 0.231598405186 0.023801133346
+######################
+# D. Parameters for the Hamiltonian
+# KAB term for H-H s-s and N-H s-s combinations (eq. 24)
+     0.96  1.04
+# kll' terms per shell pair type. Number of such terms, then, in lines: Shell type l; Shell type l'; kll' (eq. 24)
+  6
+  1  1  1.85
+  1  2  2.35
+  1  3  2.08
+  2  2  2.85
+  2  3  2.55
+  3  3  2.25
+# Atom properties
+# Electronegativities per atom type H, C, N, O (for eq. 24)
+  2.20  2.55  3.04  3.44
+# Scaling constant kEN (for eq. 24)
+  -0.007
+# Unscaled covalent radii (in Angstrom) R^\Pi_A,cov. For eq. 27.
+  0.32  0.75  0.71 0.64
+# Charge derivative term Gamma per atom type H, C, O (eq. 33). The values in the S.I. of
+#   DOI 10.1021/acs.jctc.7b00118 need to be divided by 10 prior to use - this has already been done here.
+  0.000000   0.1053856  0.0042507  -0.0005102
+# Shell properties
+# Standard populations n_l^A,0 (eq. 29); hardnesses eta_A^l (eq. 32); HA atomic energy levels (eq. 26)
+#    and kA,l^poly parameters for polynomial term Pi (eq. 27). Values in S.I. of DOI 10.1021/acs.jctc.7b00118
+#    need to be divided by 100 prior to use - this has been done here
+# In lines: atom type, shell type, n0, eta_Al (no unit), HAl (in eV), kpoly. The values of eta_Al are derived from
+# values of eta_A and kappa_Al from the S.I. of DOI 10.1021/acs.jctc.7b00118 as explained near eq. 27.
+   1  1  1   0.4700990   -10.923452   0.
+   1  2  0   0.4700990   -2.171902    0.
+   2  1  2   0.4799880   -13.587210  -0.07082170
+   2  3  2   0.4573719   -10.052785   0.00812216
+   3  1  2   0.4761060   -20.058000  -0.12745585
+   3  3  3   0.4911076   -12.889326  -0.01428367
+   4  1  2   0.5833490   -23.398376  -0.13729047
+   4  3  4   0.6052017   -17.886554  -0.04453341
+# Scaling constants kCN per shell type (s s' p) (eq. 26)
+   0.006  0.006  -0.003
+
+
+
+
