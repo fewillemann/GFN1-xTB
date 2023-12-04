@@ -1,3 +1,4 @@
+# Author: Felipe Reibnitz Willemann
 from model import GFN1_xTB
 from pathlib import Path
 import os
@@ -35,6 +36,7 @@ for coord in os.listdir(coord_dir):
     print(f"INFO: Loading {name} geometry.")
     load_result = model.load_geometry(geom_file=geom_file)
     if not load_result:
+        print("WARNING: Calculation aborted!")
         continue
 
     print(f"INFO: Staring {name} SCF calculation.")

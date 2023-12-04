@@ -1,3 +1,4 @@
+# Author: Felipe Reibnitz Willemann
 import numpy as np
 from typing import Tuple
 
@@ -14,13 +15,17 @@ class GFN1_xTB:
         types = []
         coords = []
         with open(geom_file) as arq:
-            size = int(arq.readline().split()[0])
-            next(arq)  # skip title line
+            try:
+                size = int(arq.readline().split()[0])
+            except IndexError:
+                print("ERROR: Wrong coordinates file format!")
+                return False
 
+            next(arq)  # skip title line
             for line in arq:
                 line_split = line.split()
                 if not line_split:
-                    break  # black line indicates end of file
+                    break  # blank line indicates end of file
                 elif len(line_split) != 4:
                     print("ERROR: Wrong coordinates file format!")
                     return False
