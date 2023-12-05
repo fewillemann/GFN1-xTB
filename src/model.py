@@ -89,7 +89,14 @@ class GFN1_xTB:
         eval, evec = np.linalg.eig(overlap)
         s_sqrtinv = evec * 1 / np.sqrt(eval) @ evec.T
 
-        # define zero-th order hamiltonian and first guess for Fock matrix
+        # define initial charges, energy, zero-th order hamiltonian and first guess
+        # for Fock matrix
+        shell_charges0 = {
+            (at, shell): 0
+            for at in range(self.molsize)
+            for shell in self.molshells[self.molattypes[at]]
+        }
+        eelec0 = 0
         h0 = self._calc_hamiltonian(overlap)
         fock = h0.copy()
 
@@ -109,13 +116,18 @@ class GFN1_xTB:
                 [
                     overlap,
                     s_sqrtinv,
+                    h0,
                 ],
             ):
                 outfile.write(name)
-                np.savetxt(outfile, mat, fmt="%11.8f")
+                np.savetxt(outfile, mat, fmt="%9.6f")
+
+            outfile.write("\n---------------------------------------------\n")
+            outfile.write("STARTING SCF CYCLES.\n")
+            outfile.write("---------------------------------------------\n")
 
             # start SCF loop
-            i = 0
+            i = 1
             while i < maxiter:
                 # ortogonalize and diagonalize the Fock matrix
                 fockort = s_sqrtinv.T @ fock @ s_sqrtinv
@@ -130,40 +142,39 @@ class GFN1_xTB:
                 # calculate electronic energies
                 e1 = self._calc_E1(h0, density)
                 e2 = self._calc_E2(shell_charges)
-                e3 = self._calc_E3(shell_charges)
+                e3 = self._calc_E3(atom_charges)
                 eelec = e1 + e2 + e3
 
                 # print step results
                 outfile.write(f"\nStep: {i}\n")
                 outfile.write("Atomic charges:\n")
-                np.savetxt(outfile, atom_charges, fmt="%.8f", newline=" ")
+                np.savetxt(outfile, atom_charges, fmt="%.6f", newline=" ")
                 outfile.write(
-                    f"\nE_elec, E_1, E_2, E_3: {eelec:.8f}, {e1:.8f}, {e2:.8f}, {e3:.8f}\n"
+                    f"\nE_elec, E_1, E_2, E_3: {eelec:.6f}, {e1:.6f}, {e2:.6f}, {e3:.6f}\n"
                 )
-                if i > 0:
-                    outfile.write(f"Del E_elec: {abs(eelec - eelec0):.8f}\n")
+                outfile.write(
+                    (f"Del E_elec: {abs(eelec - eelec0):.7f}\n" if i > 0 else "")
+                )
 
-                # check for big changes in charges (damping method)
-                if i > 0 and min(abs(atom_charges - atom_charges0)) > 1e-3:
-                    damped_charges = self._damp_charges(
-                        shell_charges0, shell_charges, 0.4
-                    )
-                    outfile.write("W: charges were damped!\n")
-                    fock = self._calc_fock_matrix(overlap, h0, damped_charges)
+                # charge difference
+                charge_diff = abs(
+                    np.array(list(shell_charges.values()))
+                    - np.array(list(shell_charges0.values()))
+                )
 
                 # check for convergence, write final results
-                elif i > 0 and abs(eelec - eelec0) < 1e-6:
+                if abs(eelec - eelec0) < 1e-7:
                     outfile.write("\n---------------------------------------------\n")
                     outfile.write(f"CONVERGENCE REACHED ON STEP {i}.\n")
                     outfile.write("---------------------------------------------\n")
-                    outfile.write("Final atomic charges:\n")
-                    np.savetxt(outfile, atom_charges, fmt="%11.8f", newline=" ")
+                    outfile.write("\nFinal atomic charges:\n")
+                    np.savetxt(outfile, atom_charges, fmt="%9.6f", newline=" ")
                     outfile.write("\nFinal orbital energies:\n")
-                    np.savetxt(outfile, eval[order], fmt="%11.8f", newline=" ")
+                    np.savetxt(outfile, eval[order], fmt="%9.6f", newline=" ")
                     outfile.write("\nFinal orbital coefficients:\n")
-                    np.savetxt(outfile, c, fmt="%11.8f")
+                    np.savetxt(outfile, c.T, fmt="%9.6f")
                     outfile.write(
-                        f"E_elec, E_1, E_2, E_3: {eelec:.8f}, {e1:.8f}, {e2:.8f}, {e3:.8f}\n"
+                        f"E_elec, E_1, E_2, E_3: {eelec:.6f}, {e1:.6f}, {e2:.6f}, {e3:.6f}\n"
                     )
                     outfile.write(
                         f"Repulsion and dispersion energies: {erepul:.8f}, {edisp:.8f}\n"
@@ -175,13 +186,24 @@ class GFN1_xTB:
                     print("INFO: Calculation finished normally.")
                     return
 
+                # check for big changes in charges (damping method)
+                elif not max(charge_diff) < 1e-3:
+                    damped_charges = self._damp_charges(
+                        shell_charges0, shell_charges, 0.4
+                    )
+                    outfile.write("W: charges were damped!\n")
+                    fock = self._calc_fock_matrix(
+                        overlap, h0, damped_charges[0], damped_charges[1]
+                    )
+
                 # otherwise calculate next Fock matrix normally
                 else:
-                    fock = self._calc_fock_matrix(overlap, h0, shell_charges)
+                    fock = self._calc_fock_matrix(
+                        overlap, h0, shell_charges, atom_charges
+                    )
 
                 # define previous step charges and energies
                 shell_charges0 = shell_charges
-                atom_charges0 = atom_charges
                 eelec0 = eelec
                 i += 1
 
@@ -576,44 +598,37 @@ class GFN1_xTB:
 
         return e2 / 2
 
-    def _calc_E3(self, shell_charges: np.array) -> float:
+    def _calc_E3(self, atom_charges: np.array) -> float:
         """Third order electric energy."""
-        e3 = 0
-        for at in range(self.molsize):
-            atype = self.molattypes[at]
-            qa = 0
-            for shell in self.molshells[atype]:
-                qa += shell_charges[(at, shell)]
-
-            e3 += (qa**3) * self.H_chargedev[atype]
-
-        return e3 / 3
+        return (1 / 3) * sum(
+            self.H_chargedev[self.molattypes[at]] * atom_charges[at] ** 3
+            for at in range(self.molsize)
+        )
 
     # -----------------------------------------------------------------------------
     ## SCF methods
     def _calc_sls(self, a: int, ashell: int, shell_charges: np.array) -> float:
         """Shell level shift."""
-        eps = 0
+        sls = 0
         for b in range(self.molsize):
             btype = self.molattypes[b]
             for bshell in self.molshells[btype]:
                 gamma = self._calc_gamma(a, b, ashell, bshell)
                 bcharge = shell_charges[(b, bshell)]
-                eps += gamma * bcharge
+                sls += gamma * bcharge
 
-        return eps
+        return sls
 
-    def _calc_als(self, at: int, shell_charges: np.array) -> float:
+    def _calc_als(self, at: int, atom_charges: np.array) -> float:
         """Atom level shift."""
-        eps = 0
-        attype = self.molattypes[at]
-        for shell in self.molshells[attype]:
-            eps += shell_charges[(at, shell)]
-
-        return np.square(eps) * self.H_chargedev[attype]
+        return self.H_chargedev[self.molattypes[at]] * atom_charges[at] ** 2
 
     def _calc_fock_matrix(
-        self, overlap: np.array, hamiltonian: np.array, shell_charges: np.array
+        self,
+        overlap: np.array,
+        hamiltonian: np.array,
+        shell_charges: np.array,
+        atom_charges: np.array,
     ) -> np.array:
         """Fock matrix."""
         sdim = len(self.shellats)
@@ -623,13 +638,13 @@ class GFN1_xTB:
             muat = self.shellats[mu]
             mushell = self.shelltypes[mu]
             musls = self._calc_sls(muat, mushell, shell_charges)
-            muals = self._calc_als(muat, shell_charges)
+            muals = self._calc_als(muat, atom_charges)
 
             for nu in range(sdim):
                 nuat = self.shellats[nu]
                 nushell = self.shelltypes[nu]
                 nusls = self._calc_sls(nuat, nushell, shell_charges)
-                nuals = self._calc_als(nuat, shell_charges)
+                nuals = self._calc_als(nuat, atom_charges)
 
                 fock[mu, nu] = (
                     hamiltonian[mu, nu]
@@ -668,6 +683,7 @@ class GFN1_xTB:
         self, shell_charges0: np.array, shell_charges: np.array, lam: float
     ) -> np.array:
         """Damped charges method."""
+        atom_charges = np.zeros(self.molsize)
         for at in range(self.molsize):
             attype = self.molattypes[at]
             for shell in self.molshells[attype]:
@@ -675,5 +691,6 @@ class GFN1_xTB:
                     lam * shell_charges[(at, shell)]
                     + (1 - lam) * shell_charges0[(at, shell)]
                 )
+                atom_charges[at] += shell_charges[(at, shell)]
 
-        return shell_charges
+        return shell_charges, atom_charges
