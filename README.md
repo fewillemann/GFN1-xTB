@@ -1,2 +1,4 @@
 # GFN1-xTB
-GFN1-xTB tight-binding DFT model for dispersive energy of organic molecules.
+A semi-empirical DFT model with tight-binding based dispersive energy parametrization for organic molecules.
+
+Written by: Felipe Reibnitz Willemann
