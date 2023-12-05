@@ -125,6 +125,7 @@ class GFN1_xTB:
             outfile.write("\n---------------------------------------------\n")
             outfile.write("STARTING SCF CYCLES.\n")
             outfile.write("---------------------------------------------\n")
+            outfile.write("\nStep    E_elec      E_1       E_2       E_3     Damping\n")
 
             # start SCF loop
             i = 1
@@ -145,21 +146,16 @@ class GFN1_xTB:
                 e3 = self._calc_E3(atom_charges)
                 eelec = e1 + e2 + e3
 
-                # print step results
-                outfile.write(f"\nStep: {i}\n")
-                outfile.write("Atomic charges:\n")
-                np.savetxt(outfile, atom_charges, fmt="%.6f", newline=" ")
-                outfile.write(
-                    f"\nE_elec, E_1, E_2, E_3: {eelec:.6f}, {e1:.6f}, {e2:.6f}, {e3:.6f}\n"
-                )
-                outfile.write(
-                    (f"Del E_elec: {abs(eelec - eelec0):.7f}\n" if i > 0 else "")
-                )
-
-                # charge difference
+                # charge difference and damping
                 charge_diff = abs(
                     np.array(list(shell_charges.values()))
                     - np.array(list(shell_charges0.values()))
+                )
+                damping = not max(charge_diff) < 1e-3
+
+                # print step results
+                outfile.write(
+                    f" {i}    {eelec:.6f}  {e1:.6f}  {e2:.6f}  {e3:.6f}    {['no', 'yes'][damping]}\n"
                 )
 
                 # check for convergence, write final results
@@ -187,11 +183,10 @@ class GFN1_xTB:
                     return
 
                 # check for big changes in charges (damping method)
-                elif not max(charge_diff) < 1e-3:
+                elif damping:
                     damped_charges = self._damp_charges(
                         shell_charges0, shell_charges, 0.4
                     )
-                    outfile.write("W: charges were damped!\n")
                     fock = self._calc_fock_matrix(
                         overlap, h0, damped_charges[0], damped_charges[1]
                     )
