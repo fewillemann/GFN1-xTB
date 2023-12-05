@@ -40,4 +40,4 @@ for coord in os.listdir(coord_dir):
         continue
 
     print(f"INFO: Staring {name} SCF calculation.")
-    model.scf(maxiter=maxiter, out_file=out_file)
+    model.scf(maxiter=maxiter, lam=0.4, out_file=out_file)
