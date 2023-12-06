@@ -7,6 +7,7 @@ class GFN1_xTB:
     def __init__(self, par_file: str) -> None:
         """Initialize."""
         self._read_parameters(par_file)
+        return
 
     # =============================================================================
     # public methods
@@ -26,10 +27,13 @@ class GFN1_xTB:
                 line_split = line.split()
                 if not line_split:
                     break  # blank line indicates end of file
+
+                # check right number of coordinate elements per line
                 elif len(line_split) != 4:
                     print("ERROR: Wrong coordinates file format!")
                     return False
 
+                # check right coordinates number format
                 try:
                     at_coord = np.array(line_split[1:]).astype(float)
                 except ValueError:
@@ -466,7 +470,7 @@ class GFN1_xTB:
         return el
 
     # -----------------------------------------------------------------------------
-    ## hamiltonian methods
+    ## hamiltonian and first order energy methods
     def _calc_hamiltonian(self, overlap: np.array) -> np.array:
         """Zero-th order Hamiltonian matrix."""
         sdim = len(self.shellats)
@@ -566,6 +570,22 @@ class GFN1_xTB:
 
         return charge + self.H_shellprop[(attype, shell)][0]
 
+    def _calc_charges(
+        self, overlap: np.array, density: np.array
+    ) -> Tuple[np.array, np.array]:
+        """Charges of shells and atoms for given density."""
+        shell_charges = {}
+        atom_charges = np.zeros(self.molsize)
+        for at in range(self.molsize):
+            attype = self.molattypes[at]
+            for shell in self.molshells[attype]:
+                shell_charges[(at, shell)] = self._calc_shell_charge(
+                    at, shell, overlap, density
+                )
+                atom_charges[at] += shell_charges[(at, shell)]
+
+        return shell_charges, atom_charges
+
     def _calc_gamma(self, a: int, b: int, ashell: int, bshell: int) -> float:
         """Couloumb interaction term Gamma between selected atomic shells."""
         atype = self.molattypes[a]
@@ -657,22 +677,6 @@ class GFN1_xTB:
                 p[mu, nu] = 2 * sum(c[mu, k] * c[nu, k] for k in range(int(ne / 2)))
 
         return p
-
-    def _calc_charges(
-        self, overlap: np.array, density: np.array
-    ) -> Tuple[np.array, np.array]:
-        """Charges of shells and atoms for given density."""
-        shell_charges = {}
-        atom_charges = np.zeros(self.molsize)
-        for at in range(self.molsize):
-            attype = self.molattypes[at]
-            for shell in self.molshells[attype]:
-                shell_charges[(at, shell)] = self._calc_shell_charge(
-                    at, shell, overlap, density
-                )
-                atom_charges[at] += shell_charges[(at, shell)]
-
-        return shell_charges, atom_charges
 
     def _damp_charges(
         self, shell_charges0: np.array, shell_charges: np.array, lam: float
