@@ -5,40 +5,46 @@ import os
 
 # defining relevant paths
 src_path = Path(__file__).parent
-cwd_path = Path(os.getcwd())
-par_file = src_path / "parameters.dat"
+par_file = os.path.join(src_path, "parameters.dat")
+
+# check parameter file
+if not os.path.exists(par_file):
+    print(f"ERROR: No parameters file found on {src_path}")
+    exit()
 
 # get coordinate files directory path
-coord_dir = cwd_path / Path(
-    input(
-        "Enter relative path of directory with coordinate files (from working directory): "
-    )
+cwd_path = Path(os.getcwd())
+coord_dir = os.path.join(
+    cwd_path,
+    input("Enter relative path of directory with coordinate files (from CWD): "),
 )
 
-# get output directory path
-out_option = input("Save outputs on current working directory? [y/n] ")
-if out_option.upper() == "Y":
-    out_dir = cwd_path / "outputs"
-elif out_option.upper() == "N":
-    out_dir = src_path.parent / "outputs"
-else:
-    print("Unrecognized option, aborting.")
-    exit()
-
-# check paths
+# check coordinate directory and files
 if not os.path.exists(coord_dir):
-    print("ERROR: No coordinates directory found!")
+    print("ERROR: directory with coordinate files not found!")
     exit()
 
-if not os.path.exists(par_file):
-    print("ERROR: No parameters file found!")
+list_coords = os.listdir(coord_dir)
+if ".xyz" not in [os.path.splitext(file)[1] for file in list_coords]:
+    print(f"ERROR: No XYZ files found on {coord_dir}")
     exit()
 
+# get output directory path
+out_asw = input("Save outputs under current working directory? [y/n] ")
+if out_asw.upper() == "Y":
+    out_dir = os.path.join(cwd_path, "outputs")
+elif out_asw.upper() == "N":
+    out_dir = os.path.join(src_path.parent, "outputs")
+else:
+    print("ERROR: unrecognized option.")
+    exit()
+
+# check output path
 if not os.path.exists(out_dir):
-    print("INFO: Outputs directory not found, a new one will be made.")
+    print("INFO: Outputs directory not found, a new one was created.")
     os.mkdir(out_dir)
 
-print(f"INFO: Outputs are going to be saved on {out_dir}.")
+print(f"INFO: Outputs are going to be saved on {out_dir}")
 
 # get max number of iterations
 maxiter = int(input("Enter maximum number of SCF iterations: "))
@@ -46,8 +52,7 @@ maxiter = int(input("Enter maximum number of SCF iterations: "))
 # initializing model
 model = GFN1_xTB(par_file=par_file)
 
-# run calculations for each geometry
-for file in os.listdir(coord_dir):
+for file in list_coords:
     base, ext = os.path.splitext(file)
     if ext != ".xyz":
         continue
@@ -58,7 +63,7 @@ for file in os.listdir(coord_dir):
     print(f"INFO: Loading {base} geometry.")
     load_result = model.load_geometry(geom_file=geom_file)
     if not load_result:
-        print("WARNING: Calculation aborted!")
+        print("Calculation aborted!")
         continue
 
     print(f"INFO: Staring {base} SCF calculation.")

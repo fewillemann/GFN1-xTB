@@ -19,10 +19,11 @@ class GFN1_xTB:
             try:
                 size = int(arq.readline().split()[0])
             except IndexError:
-                print("ERROR: Wrong coordinates file format!")
+                print("ERROR: Wrong molecule size format!")
                 return False
 
             next(arq)  # skip title line
+            i = 1
             for line in arq:
                 line_split = line.split()
                 if not line_split:
@@ -30,22 +31,23 @@ class GFN1_xTB:
 
                 # check right number of coordinate elements per line
                 elif len(line_split) != 4:
-                    print("ERROR: Wrong coordinates file format!")
+                    print(f"ERROR: Wrong coordinate format on line {i}!")
                     return False
 
                 # check right coordinates number format
                 try:
                     at_coord = np.array(line_split[1:]).astype(float)
                 except ValueError:
-                    print("ERROR: Wrong coordinates file format!")
+                    print(f"ERROR: Wrong coordinate format on line {i}!")
                     return False
 
                 types.append(line_split[0])
                 coords.append(at_coord / self.b2a)
+                i += 1
 
         # check correct molecule size
         if len(types) != size:
-            print("ERROR: Wrong coordinates file format!")
+            print("ERROR: Wrong number of atoms!")
             return False
 
         # check correct atom types
