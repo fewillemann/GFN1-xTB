@@ -105,31 +105,20 @@ class GFN1_xTB:
         fock = h0.copy()
 
         with open(out_file, "w+") as outfile:
-            # write header
+            # write header and initial matrices
             outfile.write("---------------------------------------------\n")
             outfile.write("GFN1-xTB CALCULATION.\n")
             outfile.write("---------------------------------------------\n")
-
-            # write initial matrices
-            for name, mat in zip(
-                [
-                    "\nOverlap (S)\n",
-                    "\nS^(-1/2)\n",
-                    "\nZero-th order Hamiltonian\n",
-                ],
-                [
-                    overlap,
-                    s_sqrtinv,
-                    h0,
-                ],
-            ):
-                outfile.write(name)
-                np.savetxt(outfile, mat, fmt="%9.6f")
-
-            outfile.write("\n---------------------------------------------\n")
-            outfile.write("STARTING SCF CYCLES.\n")
-            outfile.write("---------------------------------------------\n")
-            outfile.write("\nStep    E_elec      E_1       E_2       E_3     Damping\n")
+            outfile.write("\nMolecule coordinates (Bohr)\n")
+            for at in range(self.molsize):
+                outfile.write(
+                    f"{self.moltypes[at]:<2}  "
+                    + "{:>7.4f}  {:>7.4f}  {:>7.4f}\n".format(*self.molcoords[at])
+                )
+            outfile.write("\nOverlap (S)\n")
+            np.savetxt(outfile, overlap, fmt="%9.6f")
+            outfile.write("\nZero-th order Hamiltonian\n")
+            np.savetxt(outfile, h0, fmt="%9.6f")
 
             # start SCF loop
             i = 1
@@ -144,6 +133,17 @@ class GFN1_xTB:
                 density = self._calc_density(c=c, ne=ne)
                 shell_charges, atom_charges = self._calc_charges(overlap, density)
 
+                # write first density ans start SCF cycle
+                if i == 1:
+                    outfile.write("\nDensity first guess\n")
+                    np.savetxt(outfile, density, fmt="%9.6f")
+                    outfile.write("\n---------------------------------------------\n")
+                    outfile.write("STARTING SCF CYCLES.\n")
+                    outfile.write("---------------------------------------------\n")
+                    outfile.write(
+                        "\nStep       E_elec       E_1          E_2          E_3       Damping\n"
+                    )
+
                 # calculate electronic energies
                 e1 = self._calc_E1(h0, density)
                 e2 = self._calc_E2(shell_charges)
@@ -155,11 +155,11 @@ class GFN1_xTB:
                     np.array(list(shell_charges.values()))
                     - np.array(list(shell_charges0.values()))
                 )
-                damping = not max(charge_diff) < 1e-3
+                damping: bool = not max(charge_diff) < 1e-3
 
                 # print step results
                 outfile.write(
-                    f" {i}    {eelec:.6f}  {e1:.6f}  {e2:.6f}  {e3:.6f}    {['no', 'yes'][damping]}\n"
+                    f" {i:>2}    {eelec:>11.6f}  {e1:>11.6f}  {e2:>11.6f}  {e3:>11.6f}     {['no', 'yes'][damping]}\n"
                 )
 
                 # check for convergence, write final results
@@ -168,13 +168,16 @@ class GFN1_xTB:
                     outfile.write(f"CONVERGENCE REACHED ON STEP {i}.\n")
                     outfile.write("---------------------------------------------\n")
                     outfile.write("\nFinal atomic charges:\n")
-                    np.savetxt(outfile, atom_charges, fmt="%9.6f", newline=" ")
-                    outfile.write("\nFinal orbital energies:\n")
+                    for at in range(self.molsize):
+                        outfile.write(
+                            f"{self.moltypes[at]:<2}  {atom_charges[at]:>10.6f}\n"
+                        )
+                    outfile.write("Final orbital energies:\n")
                     np.savetxt(outfile, eval[order], fmt="%9.6f", newline=" ")
                     outfile.write("\nFinal orbital coefficients:\n")
                     np.savetxt(outfile, c.T, fmt="%9.6f")
                     outfile.write(
-                        f"E_elec, E_1, E_2, E_3: {eelec:.6f}, {e1:.6f}, {e2:.6f}, {e3:.6f}\n"
+                        f"Final electronic energy (E_1, E_2, E_3): {eelec:.6f} ({e1:.6f}, {e2:.6f}, {e3:.6f})\n"
                     )
                     outfile.write(
                         f"Repulsion and dispersion energies: {erepul:.8f}, {edisp:.8f}\n"
