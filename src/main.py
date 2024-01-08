@@ -33,8 +33,10 @@ if ".xyz" not in [os.path.splitext(file)[1] for file in list_coords]:
 out_asw = input("Save outputs under current working directory? [y/n] ")
 if out_asw.upper() == "Y":
     out_dir = os.path.join(cwd_path, "outputs")
+
 elif out_asw.upper() == "N":
     out_dir = os.path.join(src_path.parent, "outputs")
+
 else:
     print("ERROR: unrecognized option.")
     exit()
